@@ -1,31 +1,35 @@
-# Usa un'immagine Python ufficiale leggera
-FROM python:3.10-slim
+# 1. Usiamo Python 3.11 slim per un ottimo bilanciamento tra peso e performance
+FROM python:3.11-slim
 
-# Installiamo le dipendenze di sistema necessarie per processare i PDF e le immagini
-# libmagic-dev è fondamentale per identificare i tipi di file
-# poppler-utils e tesseract-ocr servono a Unstructured per leggere i PDF
+# 2. Installiamo le dipendenze di sistema
+# Aggiunto 'build-essential' per permettere la compilazione di numba/numpy
 RUN apt-get update && apt-get install -y \
+    build-essential \
     libmagic-dev \
     poppler-utils \
     tesseract-ocr \
     libgl1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Impostiamo la cartella di lavoro dentro il container
+# 3. Impostiamo la cartella di lavoro
 WORKDIR /app
 
-# Copiamo il file delle dipendenze
-COPY requirements.txt .
+# 4. IL FIX CRUCIALE: Installiamo numpy prima di ogni altra cosa
+# Questo risolve l'errore "ModuleNotFoundError: No module named 'numpy'" durante il build
+RUN pip install --no-cache-dir numpy==1.24.3
 
-# Installiamo le librerie Python
+# 5. Copiamo e installiamo il resto delle dipendenze
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiamo tutto il resto del codice
-# Nota: se i PDF non sono nella repo, dovrai caricarli via Cloud Storage (vedremo dopo)
+# 6. Copiamo il resto del codice
 COPY . .
 
-# Cloud Run usa la porta 8080 di default
+# 7. Esposizione porta e configurazione porta dinamica per Cloud Run
+ENV PORT 8080
 EXPOSE 8080
 
-# Comando per avviare l'app usando la variabile d'ambiente PORT assegnata da Google
-CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}
+# 8. Comando di avvio
+# Usiamo la forma "python main.py" perché nel tuo file main.py abbiamo già configurato 
+# uvicorn internamente con la gestione corretta delle porte.
+CMD ["python", "main.py"]
