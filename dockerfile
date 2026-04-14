@@ -1,5 +1,5 @@
 # 1. Usiamo Python 3.11 slim per un ottimo bilanciamento tra peso e performance
-FROM python:3.11-slim
+FROM python:3.10-slim
 
 # 2. Installiamo le dipendenze di sistema
 # Aggiunto 'build-essential' per permettere la compilazione di numba/numpy
