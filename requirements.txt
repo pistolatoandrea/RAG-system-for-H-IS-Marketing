@@ -1,10 +1,11 @@
+numpy==1.24.3
 fastapi
 uvicorn
 python-dotenv
 langchain
 langchain-openai
 langchain-community
-docarray
+docarray==0.32.1
 pydantic==1.10.12
 unstructured[pdf]
 google-cloud-storage

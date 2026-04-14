@@ -15,7 +15,7 @@ from langchain_community.document_loaders import WebBaseLoader, UnstructuredPDFL
 from langchain_community.vectorstores import DocArrayInMemorySearch
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.run_nables import RunnablePassthrough
+from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 
 app = FastAPI()
