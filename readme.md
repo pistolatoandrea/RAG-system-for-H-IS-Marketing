@@ -1,77 +1,67 @@
 # H-IS Marketing AI Admissions Bot (RAG System)
 
-This project implements an AI-powered virtual assistant for the **H-FARM International School** Admissions Office. The system utilizes a **RAG (Retrieval-Augmented Generation)** architecture to provide accurate responses based on official documents, internal procedures, and website content.
+This repository contains a high-performance **RAG (Retrieval-Augmented Generation)** web service designed for the **H-FARM International School** Admissions Office. It serves as an intelligent middle-layer, transforming raw student inquiries into precise, context-aware responses.
 
-## 🚀 Features
-- **Multi-source Knowledge Base**: Extracts information from web URLs, PDF brochures, and text files.
-- **Cloud-Native Integration**: Automatic document synchronization via Google Cloud Storage.
-- **Clean Output**: Generates plain-text responses (no Markdown) optimized for messaging platforms and webhooks.
-- **Startup Efficiency**: The vector database is built once at container startup to maximize response speed and minimize API costs.
+## 🚀 Overview
+The system bridges the gap between prospective families and the Admissions Office by automating the first level of inquiry. It leverages a custom knowledge base—including official brochures, internal procedures, and web content—to deliver human-like, accurate answers.
+
+## 🏗 Global Automation Workflow
+This service is a core component of a wider automation ecosystem:
+1. **Intake**: Lead inquiries are captured via **Zoho Forms**.
+2. **Orchestration**: **Make.com** triggers the workflow, sanitizing the input and calling this RAG service.
+3. **Intelligence**: This service processes the RAG logic via **OpenAI GPT-4o** and returns a sanitized plain-text response.
+4. **Closing**: Make.com updates **Zoho CRM** and triggers personalized follow-up emails.
+
+### 🎯 Focus of this Repository
+**This repository specifically implements Node #3 (Intelligence/RAG) of the workflow described above.** While the automation logic is managed by Make.com and the data resides in Zoho, this web service acts as the "brain" of the system. It is responsible for receiving the structured data, performing the vector search within the H-FARM knowledge base, and returning a human-like, plain-text answer that is ready for CRM insertion and email delivery.
 
 ## 🛠 Tech Stack
-- **Language**: Python 3.11+
-- **Web Framework**: FastAPI & Uvicorn
-- **AI Framework**: LangChain
+- **Framework**: FastAPI (Python 3.11+)
+- **Orchestration & AI**: LangChain
 - **LLM**: OpenAI GPT-4o
-- **Vector Store**: DocArray (In-memory)
-- **Infrastructure**: Google Cloud Run, Google Cloud Storage, Secret Manager
+- **Vector Store**: DocArray (In-memory for low-latency startup)
+- **Infrastructure**: Google Cloud Run, Cloud Storage, Secret Manager
+- **Integration**: Webhooks via Make.com & Zoho Suite
 
-## 🏗 System Architecture
+## ⚙️ Key Technical Features
+- **Multi-source Ingestion**: Hybrid data loading from GCS buckets (PDFs/TXT) and real-time web scraping.
+- **Auto-Indexing**: The vector database is re-initialized at container startup, ensuring the bot always uses the latest version of the uploaded documents.
+- **Robust Parsing**: Specifically engineered to handle complex JSON payloads with special characters and line breaks (common in long form inquiries).
+- **Clean Response Engine**: Custom output filtering to strip Markdown, ensuring compatibility with CRM text fields and email templates.
 
-### 1. Data Ingestion
-Upon startup, the service performs the following operations:
-1. Connects to the Google Cloud Storage bucket `h-is-marketing-knowledge-base`.
-2. Downloads the PDF brochure and procedure files locally.
-3. Scrapes content from the official H-FARM School websites.
-
-### 2. Processing & RAG
-Documents are split into chunks using `RecursiveCharacterTextSplitter` and converted into embeddings via OpenAI. When a user asks a question:
-- The system retrieves the most relevant chunks (Top-K: 8).
-- Context and question are sent to GPT-4o with a custom-tailored prompt.
-- The response is stripped of Markdown characters for a professional, plain-text output.
-
-## ⚙️ Infrastructure Configuration
-
-### Environment Variables (Secret Manager)
-The service requires the following variable configured in Google Cloud Secret Manager:
-- `OPENAI_API_KEY`: Valid API key for OpenAI models.
-
-### Cloud Run Resources
-For optimal performance, the container should be configured with:
-- **Memory**: 2 GiB (minimum recommended for PDF parsing).
-- **CPU**: 1 vCPU.
-- **CPU Allocation**: "CPU is only allocated during request processing" for cost optimization.
-
-### IAM Permissions (Service Account)
-The Cloud Run service account must hold the following roles:
-1. `Storage Object Viewer`: To download documents from the Bucket.
-2. `Secret Manager Secret Accessor`: To read the OpenAI API Key.
-3. `Cloud Run Invoker`: To allow external invocations (e.g., from Make.com).
-
-## 🔌 API Endpoints
+## 🔌 API Reference
 
 ### `POST /ask`
-Main query endpoint.
+Processes an inquiry based on the selected academic program.
+
 **JSON Payload**:
 ```json
 {
-  "question": "What are the deadlines for DP enrollment?",
-  "program": "DP"
+  "question": "What are the scholarship options for the IB Diploma Programme?",
+  "program": "DP",
+  "boarding": "false"
 }
 ```
-**Response**
-```
+
+### Successful Response
+```json
 {
-  "answer": "The deadlines for the Diploma Programme enrollment are..."
+  "answer": "H-FARM International School offers merit-based scholarships for the DP program... [Plain Text]"
 }
 ```
-## 📂 Knowledge Base Maintenance
-To update the bot's information without changing the code:
+## 📂 Knowledge Base Management
 
-1. Upload the new version of brochure.pdf or procedure.txt to the Google Cloud Storage bucket.
+Updating the bot's knowledge requires zero code changes:
 
-2. Restart the Cloud Run service or deploy a new revision.
+Upload the updated brochure.pdf or procedures.txt to the h-is-marketing-knowledge-base bucket.
 
-3. The bot will automatically download and index the new files upon restart.
+Redeploy or Restart the Cloud Run service.
 
-*Developed for H-FARM International School - MAC Department.*
+The system will automatically re-index the new data upon the next startup.
+
+## 🛡 Security & Deployment
+**Authentication**: Secured via Cloud Run IAM Invoker roles.
+
+**Secrets**: API Keys are never hardcoded; they are fetched at runtime from Google Secret Manager.
+
+**Resources**: Optimized for 2 GiB RAM / 1 vCPU to balance PDF processing power and cost-efficiency.
