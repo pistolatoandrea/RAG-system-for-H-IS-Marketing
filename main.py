@@ -109,7 +109,6 @@ download_knowledge_base()
 initialize_vector_store()
 
 # --- API ENDPOINTS ---
-
 @app.post("/ask")
 async def ask_ai(request: Request):
     if not retriever:
@@ -119,8 +118,8 @@ async def ask_ai(request: Request):
         payload = await request.json()
         user_question = payload.get("question")
         selected_program = payload.get("program", "Not specified")
-        # Nuova variabile: di default impostiamo False se non passata
         is_boarding = payload.get("boarding", False)
+        target_language = payload.get("language", "the same language as the question")
 
         if not user_question:
             raise HTTPException(status_code=400, detail="Missing question")
@@ -128,33 +127,33 @@ async def ask_ai(request: Request):
         # Prepariamo l'informazione sul boarding per il prompt
         boarding_info = "The user IS interested in the boarding school service." if is_boarding else "The user is NOT interested in boarding; they are a day student."
 
-        # Prompt Aggiornato con variabile {boarding_context}
         template = """You are the official Admissions Assistant for H-FARM International School. 
         Use the provided context to respond professionally.
 
-        USER INTERESTS:
-        - Academic Program: {program_info} 
-        - Boarding Status: {boarding_context}
+            USER INTERESTS:
+            - Academic Program: {program_info} 
+            - Boarding Status: {boarding_context}
+            - Target Language: {language_instruction}
 
-        STYLE RULES:
-        1. Respond in the SAME LANGUAGE as the question.
-        2. NO MARKDOWN (no stars, no hashtags).
-        3. NO BOLD OR ITALICS.
-        4. TONE: Professional and elegant.
-        5. LISTS: Use simple dashes "-" or numbers "1.".
-        6. Always conclude with: admissions@h-farm.com.
+            STYLE RULES:
+            1. Respond strictly in {language_instruction}.
+            2. NO MARKDOWN (no stars, no hashtags).
+            3. NO BOLD OR ITALICS.
+            4. TONE: Professional and elegant.
+            5. LISTS: Use simple dashes "-" or numbers "1.".
+            6. Always conclude with: admissions@h-farm.com.
                 
-        CONTENT GUIDELINES:
-        - If Boarding Status is "interested", include relevant details about boarding life or facilities if found in the context.
-        - If Boarding Status is "not interested", focus only on school/academic aspects.
-        - Do not invent information not present in the context.
+            CONTENT GUIDELINES:
+            - If Boarding Status is "interested", include relevant details about boarding life or facilities if found in the context.
+            - If Boarding Status is "not interested", focus only on school/academic aspects.
+            - Do not invent information not present in the context.
 
-        Context:
-        {context}
+            Context:
+            {context}
         
-        Question: {question}
+            Question: {question}
 
-        Response:"""
+            Response:"""
 
         prompt = ChatPromptTemplate.from_template(template)
         model = ChatOpenAI(model_name="gpt-4o", temperature=0)
@@ -162,13 +161,14 @@ async def ask_ai(request: Request):
         def format_docs(docs):
             return "\n\n".join(doc.page_content for doc in docs)
 
-        # Chain aggiornata con il nuovo campo
+        # Chain aggiornata con il nuovo campo language_instruction
         chain = (
             {
                 "context": retriever | format_docs, 
                 "question": RunnablePassthrough(), 
                 "program_info": lambda x: selected_program,
-                "boarding_context": lambda x: boarding_info # Passiamo la stringa creata sopra
+                "boarding_context": lambda x: boarding_info,
+                "language_instruction": lambda x: target_language # Nuova mappatura
             }
             | prompt
             | model
@@ -180,7 +180,7 @@ async def ask_ai(request: Request):
 
         return {"answer": final_answer}
 
-    except Exception as e:
+    except Exception as e:    
         print(f"SYSTEM ERROR: {str(e)}")
         return {"answer": "I encountered a technical error. Please contact admissions@h-farm.com."}
     

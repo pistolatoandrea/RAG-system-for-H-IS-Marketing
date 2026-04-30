@@ -39,7 +39,8 @@ Processes an inquiry based on the selected academic program.
 {
   "question": "What are the scholarship options for the IB Diploma Programme?",
   "program": "DP",
-  "boarding": "false"
+  "boarding": "false",
+  "language": "English"
 }
 ```
 
