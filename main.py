@@ -141,7 +141,8 @@ async def ask_ai(request: Request):
             3. NO BOLD OR ITALICS.
             4. TONE: Professional and elegant.
             5. LISTS: Use simple dashes "-" or numbers "1.".
-            6. Always conclude with: admissions@h-farm.com.
+            6. Always conclude with: admissions@h-is.com.
+            7. Don't write closing salutation.
                 
             CONTENT GUIDELINES:
             - If Boarding Status is "interested", include relevant details about boarding life or facilities if found in the context.
